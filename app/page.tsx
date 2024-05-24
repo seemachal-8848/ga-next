@@ -1,5 +1,5 @@
 'use client';
-import React,{useEffect} from 'react';
+import React,{useEffect, useState} from 'react';
 import Image from "next/image";
 import styles from "./page.module.css";
 
@@ -10,6 +10,16 @@ const MeasurementID = 'G-2B6WMLFDEQ'
 ReactGA.initialize(MeasurementID);
 
 export default function Home() {
+
+  const [searchValue, setSearchValue] = useState("");
+
+  const handleInputChange = (event: { target: { value: any; }; }) => {
+    ReactGA.event({
+      category: 'User',
+      action: 'Searched'
+    });
+    setSearchValue(event.target.value);
+  };
   const handleButtonClick = () => {
     ReactGA.event({
       category: 'User',
@@ -26,9 +36,17 @@ export default function Home() {
   return (
     <div>
      <p>App d</p>
+     <input
+        type="text"
+        placeholder="Enter your search query"
+        value={searchValue}
+        onChange={handleInputChange}
+      />
+    
      <button onClick={handleButtonClick}>click</button>
     </div>
   );
 }
+
 
 
