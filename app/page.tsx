@@ -1,48 +1,157 @@
-'use client';
-import React,{useEffect, useState} from 'react';
-import Image from "next/image";
-import styles from "./page.module.css";
+// 'use client'
+// import React, { useEffect, useRef } from "react";
+// import EditorJS from "@editorjs/editorjs";
+// import Header from '@editorjs/header'; 
+// import Table from '@editorjs/table';
+// import ImageTool from '@editorjs/image';
 
-import ReactGA from 'react-ga4';
-const MeasurementID = 'G-NPXGM1BY36'
-ReactGA.initialize(MeasurementID);
+// const DEFAULT_INITIAL_DATA =  {
+//       "time": new Date().getTime(),
+//       "blocks": [
+//         {
+//           "type": "header",
+//           "data": {
+//             "text": "This is my awesome editor!",
+//             "level": 1
+//           }
+//         },
+//       ]
+//   }
 
-export default function Home() {
+// const EditorComponent = () => {
+//   const ejInstance = useRef();
 
-  const [searchValue, setSearchValue] = useState("");
+//     const initEditor = () => {
+//        const editor = new EditorJS({
+//           holder: 'editorjs',
+//           onReady: () => {
+//             ejInstance.current = editor;
+//           },
+//           autofocus: true,
+//           data: DEFAULT_INITIAL_DATA,
+//           onChange: async () => {
+//             let content = await editor.saver.save();
 
-  const handleInputChange = (event: { target: { value: any; }; }) => {
-    ReactGA.event({
-      category: 'User',
-      action: 'Searched'
-    });
-    setSearchValue(event.target.value);
-  };
-  const handleButtonClick = () => {
-    ReactGA.event({
-      category: 'User',
-      action: 'Clicked a button'
+//             console.log("editor.js",content);
+//           },
+//           tools: { 
+//             header: Header, 
+//             table: Table,
+//           },
+          
+//         });
+//       };
+
+//       // This will run only once
+//   useEffect(() => {
+//     if (ejInstance.current === null) {
+//       initEditor();
+//     }
+
+//     return () => {
+//       ejInstance?.current?.destroy();
+//       ejInstance.current = null;
+//     };
+//   }, []);
+
+//     return  <><div id='editorjs'></div></>;
+// }
+
+// export default EditorComponent;
+'use client'
+import React, { useEffect, useRef } from "react";
+import EditorJS from "@editorjs/editorjs";
+import Header from "@editorjs/header";
+import ImageTool from "@editorjs/image";
+import axios from "axios";
+
+const DEFAULT_INITIAL_DATA = {
+  time: new Date().getTime(),
+  blocks: [
+    {
+      type: "header",
+      data: {
+        level: 1,
+        text: "My name is Lakhan",
+      },
+    },
+  ],
+};
+
+const EditorComponent = () => {
+  const ejInstance = useRef();
+
+  const initEditor = () => {
+    const editor = new EditorJS({
+      holder: "editorjs",
+      onReady: () => {
+        ejInstance.current = editor;
+      },
+      autofocus: true,
+      onChange: async () => {
+        let content = await editor.saver.save();
+
+        console.log(">>>",content);
+      },
+      tools: {
+        header: Header,
+        image: {
+          class: ImageTool,
+          config: {
+            uploader: {
+              async uploadByFile(file) {
+                // your own uploading logic here
+                const formData = new FormData();
+                formData.append("file", file);
+
+                // const response = await axios.post(
+                //   `http://localhost:4001/api/uploadImage/create`,
+                //   formData,
+                //   {
+                //     headers: {
+                //       "Content-Type": "multipart/form-data",
+                //     },
+                //     withCredentials: false,
+                //   }
+                // );
+
+                if (response.data.success === 1) {
+                  return response.data;
+                }
+              },
+              async uploadByUrl(url) {
+                const response = await axios.post(
+                  `http://localhost:4001/api/uploadImage/createByUrl`,
+                  {
+                    url,
+                  }
+                );
+
+                if (response.data.success === 1) {
+                  return response.data;
+                }
+              },
+            },
+            inlineToolbar: true,
+          },
+        },
+      },
+      data: DEFAULT_INITIAL_DATA,
     });
   };
 
   useEffect(() => {
-    ReactGA.send({ hitType: "pageview", page: window.location.pathname });
+    if (ejInstance.current === null) {
+      initEditor();
+    }
 
+    return () => {
+      ejInstance?.current?.destroy();
+      ejInstance.current = null;
+    };
   }, []);
-  return (
-    <div>
-     <p>App d</p>
-     <input
-        type="text"
-        placeholder="Enter your search query"
-        value={searchValue}
-        onChange={handleInputChange}
-      />
-    
-     <button onClick={handleButtonClick}>click</button>
-    </div>
-  );
-}
 
+  return <div id="editorjs"></div>;
+};
 
-
+export default EditorComponent;
