@@ -1,157 +1,78 @@
-// 'use client'
-// import React, { useEffect, useRef } from "react";
-// import EditorJS from "@editorjs/editorjs";
-// import Header from '@editorjs/header'; 
-// import Table from '@editorjs/table';
-// import ImageTool from '@editorjs/image';
-
-// const DEFAULT_INITIAL_DATA =  {
-//       "time": new Date().getTime(),
-//       "blocks": [
-//         {
-//           "type": "header",
-//           "data": {
-//             "text": "This is my awesome editor!",
-//             "level": 1
-//           }
-//         },
-//       ]
-//   }
-
-// const EditorComponent = () => {
-//   const ejInstance = useRef();
-
-//     const initEditor = () => {
-//        const editor = new EditorJS({
-//           holder: 'editorjs',
-//           onReady: () => {
-//             ejInstance.current = editor;
-//           },
-//           autofocus: true,
-//           data: DEFAULT_INITIAL_DATA,
-//           onChange: async () => {
-//             let content = await editor.saver.save();
-
-//             console.log("editor.js",content);
-//           },
-//           tools: { 
-//             header: Header, 
-//             table: Table,
-//           },
-          
-//         });
-//       };
-
-//       // This will run only once
-//   useEffect(() => {
-//     if (ejInstance.current === null) {
-//       initEditor();
-//     }
-
-//     return () => {
-//       ejInstance?.current?.destroy();
-//       ejInstance.current = null;
-//     };
-//   }, []);
-
-//     return  <><div id='editorjs'></div></>;
-// }
-
-// export default EditorComponent;
 'use client'
-import React, { useEffect, useRef } from "react";
-import EditorJS from "@editorjs/editorjs";
-import Header from "@editorjs/header";
-import ImageTool from "@editorjs/image";
-import axios from "axios";
 
-const DEFAULT_INITIAL_DATA = {
-  time: new Date().getTime(),
-  blocks: [
-    {
-      type: "header",
-      data: {
-        level: 1,
-        text: "My name is Lakhan",
-      },
-    },
-  ],
-};
+import EditorModal from "./components/EditorModal"
+import Card from "./components/Card"
+import Masonry from "react-masonry-css"
+import { useContext, useEffect, useState, useRef } from "react"
+import { EditorContext } from "./components/EditorContext"
+import { nanoid } from "nanoid"
 
-const EditorComponent = () => {
-  const ejInstance = useRef();
+function App() {
+  const localNotes = JSON.parse(localStorage.getItem('notes'))
+  const [notesArr, setNotesArr] = useState(localNotes ? localNotes : [])
+  const updatedId = useRef(null)
 
-  const initEditor = () => {
-    const editor = new EditorJS({
-      holder: "editorjs",
-      onReady: () => {
-        ejInstance.current = editor;
-      },
-      autofocus: true,
-      onChange: async () => {
-        let content = await editor.saver.save();
+  const {editorInstanceRef} = useContext(EditorContext)
 
-        console.log(">>>",content);
-      },
-      tools: {
-        header: Header,
-        image: {
-          class: ImageTool,
-          config: {
-            uploader: {
-              async uploadByFile(file) {
-                // your own uploading logic here
-                const formData = new FormData();
-                formData.append("file", file);
+  const handleAdd = () => {
+    updatedId.current = null
+    editorInstanceRef.current.clear()
+  }
 
-                // const response = await axios.post(
-                //   `http://localhost:4001/api/uploadImage/create`,
-                //   formData,
-                //   {
-                //     headers: {
-                //       "Content-Type": "multipart/form-data",
-                //     },
-                //     withCredentials: false,
-                //   }
-                // );
+  const handleSave = async () => {
+    const data = await editorInstanceRef.current.save()
+    console.log(data);
+    if (updatedId.current) {
+      handleDelete(updatedId.current)
+      data.id = updatedId.current
+      updatedId.current = null
+    } else {
+      data.id = nanoid(10)
+    }
+    data.blocks.length && setNotesArr(prev => [data, ...prev])
+  }
 
-                if (response.data.success === 1) {
-                  return response.data;
-                }
-              },
-              async uploadByUrl(url) {
-                const response = await axios.post(
-                  `http://localhost:4001/api/uploadImage/createByUrl`,
-                  {
-                    url,
-                  }
-                );
+  const handleEdit = (idx) => {
+    updatedId.current = idx
+    notesArr.map(note => {
+      if (note.id === idx) {
+        editorInstanceRef.current.render({
+          blocks: note.blocks,
+        })
+      }
+    })
+  }
 
-                if (response.data.success === 1) {
-                  return response.data;
-                }
-              },
-            },
-            inlineToolbar: true,
-          },
-        },
-      },
-      data: DEFAULT_INITIAL_DATA,
-    });
-  };
+  const handleDelete = (idx) => {
+    const filteredNotes= notesArr.filter(note => note.id !== idx)
+    setNotesArr(filteredNotes)
+  }
 
   useEffect(() => {
-    if (ejInstance.current === null) {
-      initEditor();
-    }
+    localStorage.setItem('notes', JSON.stringify(notesArr))
+  },[notesArr])
 
-    return () => {
-      ejInstance?.current?.destroy();
-      ejInstance.current = null;
-    };
-  }, []);
+  return (
+    <>
+      <EditorModal onSave={handleSave}/>
+      <div className="container text-center mt-5">
+        <Masonry breakpointCols={{ default: 3, 1200: 2, 768: 1 }} className="my-masonry-grid d-flex" columnClassName="my-masonry-grid_column"> 
+          {notesArr.map((note) => { 
+            return <Card blocks={note.blocks} idx={note.id} key={note.id} onDelete={handleDelete} onEdit={handleEdit} /> 
+          })} 
+        </Masonry>
+      </div>
+      <div className="position-fixed bottom-0 end-0 m-4 z-2">
+        <button className="btn btn-primary d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#editormodal" onClick={handleAdd}>
+          <span className="pe-2">
+            New Note
+          </span>
+          <i className="bi bi-journal-plus fs-2"></i>
+        </button>
+      </div>
+    </>
+  )
+}
 
-  return <div id="editorjs"></div>;
-};
+export default App
 
-export default EditorComponent;
