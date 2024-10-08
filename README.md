@@ -1,4 +1,4 @@
-git clone https://github.com/yourusername/PRADAN.git
+git clone https://github.com/8848digital/NRLM-Pradan-Frontend.git
 cd PRADAN
 npm install
 npm start
